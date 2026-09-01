@@ -245,10 +245,7 @@
                   <div style="color: var(--accent-amber);">OBSTACLE: <b>&lt; 50 CM HAZARD</b></div>
                 </div>
 
-                <div class="lidar-controls-overlay">
-                  <button class="btn btn-outline btn-sm" id="lidarExportXyzBtn" style="background: rgba(10,13,20,0.85); color: var(--accent-cyan);">💾 EXPORT .XYZ</button>
-                  <button class="btn btn-outline btn-sm" id="lidarExportCsvBtn" style="background: rgba(10,13,20,0.85);">📊 EXPORT .CSV</button>
-                </div>
+                <!-- Clean HUD without export overlay -->
               </div>
             </div>
           </div>
@@ -333,12 +330,10 @@
       <div class="hud-card">
         <div class="hud-header">
           <span class="hud-title">SUBTERRANEAN 3D POINT CLOUD & TOPOLOGY SLAM</span>
-          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <div style="display: flex; gap: 8px;">
             <button class="btn btn-primary btn-sm" onclick="lidarVisualizer.setViewMode('2D_RADAR')">2D RADAR</button>
             <button class="btn btn-outline btn-sm" onclick="lidarVisualizer.setViewMode('3D_TUNNEL')">3D TUNNEL MESH</button>
-            <button class="btn btn-warning btn-sm" onclick="lidarVisualizer.exportXYZ()">💾 EXPORT .XYZ MAP</button>
-            <button class="btn btn-outline btn-sm" onclick="lidarVisualizer.exportPointCloudCSV()">📊 EXPORT CSV</button>
-            <button class="btn btn-outline btn-sm" onclick="lidarVisualizer.exportGeoJSON()">🗺️ GEOJSON</button>
+            <button class="btn btn-outline btn-sm" onclick="lidarVisualizer.clearPoints()">CLEAR MAP</button>
           </div>
         </div>
         <div class="hud-body">
