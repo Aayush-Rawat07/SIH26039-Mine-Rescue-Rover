@@ -212,8 +212,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  if (lidarClearBtn) lidarClearBtn.addEventListener('click', () => window.lidarVisualizer.clearPoints());
-  if (lidarExportBtn) lidarExportBtn.addEventListener('click', () => window.lidarVisualizer.exportPointCloudCSV());
+  const lidarExportXyzBtn = document.getElementById('lidarExportXyzBtn');
+  const lidarExportCsvBtn = document.getElementById('lidarExportCsvBtn');
+
+  if (lidarExportXyzBtn) lidarExportXyzBtn.addEventListener('click', () => window.lidarVisualizer.exportXYZ());
+  if (lidarExportCsvBtn) lidarExportCsvBtn.addEventListener('click', () => window.lidarVisualizer.exportPointCloudCSV());
 
   // 7. Teleoperation Speed Slider
   const speedSlider = document.getElementById('teleopSpeedSlider');

@@ -303,18 +303,119 @@ class LidarVisualizer {
     }
   }
 
-  exportPointCloudCSV() {
-    let csv = "timestamp_ms,angle_deg,distance_cm,cartesian_x,cartesian_y,cartesian_z,is_obstacle\n";
+  /**
+   * Export standard .xyz Point Cloud format (X Y Z R G B or X Y Z Intensity)
+   * Compatible with CloudCompare, MeshLab, AutoCAD, Blender, ROS RViz
+   */
+  exportXYZ() {
+    if (!this.points || this.points.length === 0) {
+      alert("No point cloud data recorded yet. Please connect hardware or start the simulator first!");
+      return;
+    }
+
+    let xyzContent = "# SIH26039 Mine Rescue Rover Point Cloud Map (.xyz)\n";
+    xyzContent += "# Format: X Y Z Intensity Red Green Blue\n";
+
     this.points.forEach(p => {
-      csv += `${p.timestamp},${p.angle.toFixed(1)},${p.distance},${p.x.toFixed(2)},${p.y.toFixed(2)},${p.z.toFixed(2)},${p.isObstacle ? 1 : 0}\n`;
+      // Calculate color based on obstacle status or distance
+      let r = 16, g = 185, b = 129; // Green (safe)
+      let intensity = Math.min(255, Math.round((p.distance / 300) * 255));
+
+      if (p.isObstacle) {
+        r = 239; g = 68; b = 68; // Red (obstacle)
+      } else if (p.distance < 100) {
+        r = 245; g = 158; b = 11; // Amber (warning)
+      }
+
+      // X Y Z Intensity R G B (cm units)
+      xyzContent += `${p.x.toFixed(2)} ${p.y.toFixed(2)} ${p.z.toFixed(2)} ${intensity} ${r} ${g} ${b}\n`;
+    });
+
+    const blob = new Blob([xyzContent], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `mine_tunnel_map_${Date.now()}.xyz`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    if (window.alarmSystem) {
+      window.alarmSystem.playChime();
+    }
+  }
+
+  /**
+   * Export CSV format for Excel, Python Pandas, MATLAB analysis
+   */
+  exportPointCloudCSV() {
+    if (!this.points || this.points.length === 0) {
+      alert("No point cloud data recorded yet. Please connect hardware or start the simulator first!");
+      return;
+    }
+
+    let csv = "timestamp_ms,angle_deg,distance_cm,cartesian_x_cm,cartesian_y_cm,cartesian_z_cm,is_obstacle,hazard_level\n";
+    this.points.forEach(p => {
+      const hazard = p.isObstacle ? "CRITICAL_OBSTACLE" : (p.distance < 100 ? "WARNING_PROXIMITY" : "SAFE_PASSAGE");
+      csv += `${p.timestamp},${p.angle.toFixed(1)},${p.distance},${p.x.toFixed(2)},${p.y.toFixed(2)},${p.z.toFixed(2)},${p.isObstacle ? 1 : 0},${hazard}\n`;
     });
     
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `mine_lidar_pointcloud_${Date.now()}.csv`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    if (window.alarmSystem) {
+      window.alarmSystem.playChime();
+    }
+  }
+
+  /**
+   * Export GeoJSON format for GIS & surface rescue mapping
+   */
+  exportGeoJSON() {
+    if (!this.points || this.points.length === 0) {
+      alert("No point cloud data recorded yet. Please connect hardware or start the simulator first!");
+      return;
+    }
+
+    const geojson = {
+      type: "FeatureCollection",
+      metadata: {
+        mission: "SIH26039 Underground Reconnaissance",
+        timestamp: Date.now(),
+        pointCount: this.points.length
+      },
+      features: this.points.map((p, idx) => ({
+        type: "Feature",
+        id: idx,
+        geometry: {
+          type: "Point",
+          coordinates: [parseFloat(p.x.toFixed(2)), parseFloat(p.y.toFixed(2)), parseFloat(p.z.toFixed(2))]
+        },
+        properties: {
+          angle_deg: p.angle,
+          distance_cm: p.distance,
+          is_obstacle: p.isObstacle,
+          timestamp: p.timestamp
+        }
+      }))
+    };
+
+    const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `mine_tunnel_map_${Date.now()}.geojson`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }
 }
