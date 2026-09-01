@@ -207,6 +207,9 @@ class LidarVisualizer {
   /**
    * Three.js 3D Point Cloud Tunnel Scene Initialization
    */
+  /**
+   * Three.js 3D Point Cloud Tunnel Scene Initialization with Interactive Orbit Controls
+   */
   init3DScene() {
     if (typeof THREE === 'undefined' || !this.threejsContainer) return;
 
@@ -216,27 +219,71 @@ class LidarVisualizer {
 
       this.scene = new THREE.Scene();
       this.scene.background = new THREE.Color(0x05070a);
-      this.scene.fog = new THREE.FogExp2(0x05070a, 0.005);
+      this.scene.fog = new THREE.FogExp2(0x05070a, 0.0035);
 
-      this.camera = new THREE.PerspectiveCamera(60, w / h, 0.1, 2000);
-      this.camera.position.set(0, -180, 220);
-      this.camera.lookAt(0, 80, 0);
+      this.camera = new THREE.PerspectiveCamera(55, w / h, 1, 3000);
+      
+      // Orbit parameters
+      this.cameraRadius = 320;
+      this.cameraTheta = Math.PI / 2; // azimuth
+      this.cameraPhi = Math.PI / 4;   // elevation
+      this.cameraTarget = new THREE.Vector3(0, 80, 0);
+
+      this.updateCameraPosition();
 
       this.renderer = new THREE.WebGLRenderer({ antialias: true });
       this.renderer.setSize(w, h);
+      this.renderer.setPixelRatio(window.devicePixelRatio || 1);
+      this.threejsContainer.innerHTML = '';
       this.threejsContainer.appendChild(this.renderer.domElement);
 
-      // Tunnel grid & wireframe tunnel arch
-      const gridHelper = new THREE.GridHelper(600, 30, 0x06b6d4, 0x1e293b);
+      // 1. Mine Shaft Floor Grid
+      const gridHelper = new THREE.GridHelper(800, 40, 0x06b6d4, 0x1e293b);
       gridHelper.rotation.x = Math.PI / 2;
       this.scene.add(gridHelper);
 
-      // Rover 3D Body Marker
-      const roverGeo = new THREE.BoxGeometry(20, 30, 10);
-      const roverMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b, wireframe: true });
-      this.roverMarker = new THREE.Mesh(roverGeo, roverMat);
-      this.roverMarker.position.set(0, 0, 5);
+      // 2. Subterranean Mine Tunnel Arches (Simulating underground coal gallery)
+      const archMat = new THREE.LineBasicMaterial({ color: 0x1e3a5f, transparent: true, opacity: 0.6 });
+      for (let y = 0; y <= 400; y += 80) {
+        const archGeo = new THREE.BufferGeometry();
+        const archPts = [];
+        const archRadius = 140;
+        for (let a = 0; a <= Math.PI; a += Math.PI / 16) {
+          archPts.push(new THREE.Vector3(-archRadius * Math.cos(a), y, archRadius * Math.sin(a)));
+        }
+        archGeo.setFromPoints(archPts);
+        const archMesh = new THREE.Line(archGeo, archMat);
+        this.scene.add(archMesh);
+      }
+
+      // 3. Rover 3D Chassis
+      const roverGroup = new THREE.Group();
+      const roverBodyGeo = new THREE.BoxGeometry(26, 38, 12);
+      const roverBodyMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b, wireframe: true });
+      const roverBody = new THREE.Mesh(roverBodyGeo, roverBodyMat);
+      roverBody.position.z = 6;
+      roverGroup.add(roverBody);
+
+      // 3D Laser Turret Mirror
+      const turretGeo = new THREE.CylinderGeometry(4, 4, 6, 12);
+      const turretMat = new THREE.MeshBasicMaterial({ color: 0x06b6d4 });
+      const turret = new THREE.Mesh(turretGeo, turretMat);
+      turret.position.set(0, 10, 14);
+      turret.rotation.x = Math.PI / 2;
+      roverGroup.add(turret);
+
+      this.roverMarker = roverGroup;
       this.scene.add(this.roverMarker);
+
+      // 4. Active Laser Beam in 3D
+      const beamGeo = new THREE.BufferGeometry();
+      beamGeo.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 14, 0, 150, 14], 3));
+      this.laserBeamMat = new THREE.LineBasicMaterial({ color: 0x06b6d4, linewidth: 2 });
+      this.laserBeam3D = new THREE.Line(beamGeo, this.laserBeamMat);
+      this.scene.add(this.laserBeam3D);
+
+      // 5. Mouse / Touch Orbit Controls
+      this.initOrbitMouseControls(this.renderer.domElement);
 
       this.is3DInitialized = true;
     } catch (e) {
@@ -244,8 +291,101 @@ class LidarVisualizer {
     }
   }
 
+  updateCameraPosition() {
+    if (!this.camera) return;
+    this.camera.position.x = this.cameraTarget.x + this.cameraRadius * Math.sin(this.cameraPhi) * Math.sin(this.cameraTheta);
+    this.camera.position.y = this.cameraTarget.y - this.cameraRadius * Math.sin(this.cameraPhi) * Math.cos(this.cameraTheta);
+    this.camera.position.z = this.cameraTarget.z + this.cameraRadius * Math.cos(this.cameraPhi);
+    this.camera.lookAt(this.cameraTarget);
+  }
+
+  initOrbitMouseControls(element) {
+    let isDragging = false;
+    let previousMousePosition = { x: 0, y: 0 };
+
+    element.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      previousMousePosition = { x: e.clientX, y: e.clientY };
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const deltaX = e.clientX - previousMousePosition.x;
+      const deltaY = e.clientY - previousMousePosition.y;
+
+      if (e.buttons === 1) { // Left click: Orbit
+        this.cameraTheta -= deltaX * 0.008;
+        this.cameraPhi = Math.max(0.1, Math.min(Math.PI / 2 - 0.05, this.cameraPhi - deltaY * 0.008));
+        this.updateCameraPosition();
+      } else if (e.buttons === 2) { // Right click: Pan
+        this.cameraTarget.x -= deltaX * 0.4;
+        this.cameraTarget.y += deltaY * 0.4;
+        this.updateCameraPosition();
+      }
+
+      previousMousePosition = { x: e.clientX, y: e.clientY };
+    });
+
+    window.addEventListener('mouseup', () => { isDragging = false; });
+    element.addEventListener('contextmenu', (e) => e.preventDefault());
+
+    // Scroll Zoom
+    element.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      this.cameraRadius = Math.max(60, Math.min(1000, this.cameraRadius + e.deltaY * 0.4));
+      this.updateCameraPosition();
+    }, { passive: false });
+
+    // Touch Support for Mobile / Tablet
+    let touchStartDist = 0;
+    element.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        isDragging = true;
+        previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      } else if (e.touches.length === 2) {
+        touchStartDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+      }
+    });
+
+    element.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 1 && isDragging) {
+        const deltaX = e.touches[0].clientX - previousMousePosition.x;
+        const deltaY = e.touches[0].clientY - previousMousePosition.y;
+        this.cameraTheta -= deltaX * 0.008;
+        this.cameraPhi = Math.max(0.1, Math.min(Math.PI / 2 - 0.05, this.cameraPhi - deltaY * 0.008));
+        this.updateCameraPosition();
+        previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      } else if (e.touches.length === 2) {
+        const dist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        const delta = touchStartDist - dist;
+        this.cameraRadius = Math.max(60, Math.min(1000, this.cameraRadius + delta * 0.8));
+        this.updateCameraPosition();
+        touchStartDist = dist;
+      }
+    }, { passive: false });
+
+    element.addEventListener('touchend', () => { isDragging = false; });
+  }
+
   update3DPoints() {
     if (!this.is3DInitialized || typeof THREE === 'undefined') return;
+
+    // Update active 3D laser beam direction
+    if (this.laserBeam3D) {
+      const rad = (this.currentAngle - 90) * (Math.PI / 180);
+      const targetX = this.currentDistance * Math.sin(rad);
+      const targetY = this.currentDistance * Math.cos(rad);
+      const posAttr = this.laserBeam3D.geometry.attributes.position;
+      posAttr.setXYZ(0, 0, 0, 14);
+      posAttr.setXYZ(1, targetX, targetY, 0);
+      posAttr.needsUpdate = true;
+    }
 
     if (this.pointCloudMesh) {
       this.scene.remove(this.pointCloudMesh);
@@ -255,16 +395,16 @@ class LidarVisualizer {
     const positions = [];
     const colors = [];
 
-    const colorNear = new THREE.Color(0xef4444);
-    const colorMid = new THREE.Color(0xf59e0b);
-    const colorFar = new THREE.Color(0x10b981);
+    const colorNear = new THREE.Color(0xef4444); // Red (Hazard / Collision < 50cm)
+    const colorMid = new THREE.Color(0xf59e0b);  // Amber (Caution < 100cm)
+    const colorFar = new THREE.Color(0x10b981);  // Emerald Green (Clear Wall)
 
     this.points.forEach(p => {
       positions.push(p.x, p.y, p.z);
 
       if (p.isObstacle) {
         colors.push(colorNear.r, colorNear.g, colorNear.b);
-      } else if (p.distance < 120) {
+      } else if (p.distance < 100) {
         colors.push(colorMid.r, colorMid.g, colorMid.b);
       } else {
         colors.push(colorFar.r, colorFar.g, colorFar.b);
@@ -274,7 +414,13 @@ class LidarVisualizer {
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
     geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
 
-    const material = new THREE.PointsMaterial({ size: 3, vertexColors: true });
+    const material = new THREE.PointsMaterial({ 
+      size: 4.5, 
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.95
+    });
+
     this.pointCloudMesh = new THREE.Points(geometry, material);
     this.scene.add(this.pointCloudMesh);
   }
@@ -291,6 +437,17 @@ class LidarVisualizer {
     requestAnimationFrame(loop);
   }
 
+  resize3D() {
+    if (!this.is3DInitialized || !this.renderer || !this.threejsContainer) return;
+    const w = this.threejsContainer.clientWidth || 600;
+    const h = this.threejsContainer.clientHeight || 420;
+    if (this.camera) {
+      this.camera.aspect = w / h;
+      this.camera.updateProjectionMatrix();
+    }
+    this.renderer.setSize(w, h);
+  }
+
   setViewMode(mode) {
     this.viewMode = mode;
     if (mode === '2D_RADAR') {
@@ -299,7 +456,10 @@ class LidarVisualizer {
       this.resizeRadar();
     } else {
       if (this.radarCanvas) this.radarCanvas.style.display = 'none';
-      if (this.threejsContainer) this.threejsContainer.style.display = 'block';
+      if (this.threejsContainer) {
+        this.threejsContainer.style.display = 'block';
+        this.resize3D();
+      }
     }
   }
 
