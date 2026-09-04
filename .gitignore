@@ -24,3 +24,7 @@ desktop.ini
 
 # Temporary data / logs
 *.log
+
+# Standalone tools
+server/cloudflared.exe
+*.exe

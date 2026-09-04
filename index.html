@@ -74,7 +74,7 @@
     </button>
     <button class="tab-btn" data-tab="tabLidar" onclick="window.switchTab('tabLidar')">
       <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/></svg>
-      LiDAR 3D SLAM
+      3D TUNNEL CROSS-SECTION
     </button>
     <button class="tab-btn" data-tab="tabCamera" onclick="window.switchTab('tabCamera')">
       <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
@@ -207,48 +207,131 @@
             </div>
           </div>
 
+          <!-- Hardware Diagnostics & Link Quality -->
+          <div class="hud-card" style="margin-top: 10px;">
+            <div class="hud-header">
+              <span class="hud-title">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                HARDWARE & LINK DIAGNOSTICS
+              </span>
+              <span style="font-size: 0.7rem; color: var(--accent-emerald); font-family: var(--font-mono);">ONLINE</span>
+            </div>
+            <div class="hud-body">
+              <div class="diag-grid">
+                <!-- 3S LiPo Battery -->
+                <div class="gauge-box">
+                  <div class="gauge-label">
+                    <span>3S LiPo BATTERY</span>
+                    <span style="color: var(--accent-emerald);">⚡ 11.1V</span>
+                  </div>
+                  <div class="gauge-value" id="diagBattVal" style="font-size: 1.05rem;">12.4V (92%)</div>
+                  <div class="gauge-sub" id="diagBattSub">3S LiPo • NORMAL</div>
+                  <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="diagBattBar" style="width: 92%; background-color: #10b981;"></div>
+                  </div>
+                </div>
+
+                <!-- LoRa Wireless Link -->
+                <div class="gauge-box">
+                  <div class="gauge-label">
+                    <span>LoRa 433MHz LINK</span>
+                    <span style="color: var(--accent-cyan);">SX1278</span>
+                  </div>
+                  <div class="gauge-value" id="diagLoraVal" style="font-size: 1.05rem;">-68 dBm</div>
+                  <div class="gauge-sub" id="diagLoraSub">SNR: 9.5dB • Ping: 38ms</div>
+                  <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="diagLoraBar" style="width: 75%; background-color: #06b6d4;"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Rolling Trend Chart -->
-          <div class="hud-card" style="flex: 1; min-height: 200px;">
+          <div class="hud-card" style="flex: 1; min-height: 180px; margin-top: 10px;">
             <div class="hud-header">
               <span class="hud-title">REAL-TIME GAS & TEMP WAVEFORM</span>
             </div>
-            <div class="hud-body" style="height: 180px; position: relative;">
+            <div class="hud-body" style="height: 160px; position: relative;">
               <canvas id="telemetryTrendChart"></canvas>
             </div>
           </div>
         </div>
 
-        <!-- CENTER COLUMN: LiDAR SLAM 2D Radar & 3D Tunnel Mesh (API 1 & API 5) -->
-        <div style="display: flex; flex-direction: column;">
+        <!-- CENTER COLUMN: Subterranean 3D LiDAR Tunnel Cross-Section & Mission Event Log -->
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          
+          <!-- 3D Tunnel Cross-Section Viewport -->
           <div class="hud-card" style="flex: 1;">
             <div class="hud-header">
               <span class="hud-title">
                 <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-                LiDAR POINT CLOUD & TUNNEL MAPPING (API 1 & 5)
+                SUBTERRANEAN 3D LiDAR: TUNNEL CROSS-SECTION
               </span>
-              <div style="display: flex; gap: 4px;">
-                <button class="btn btn-primary btn-sm" id="lidarMode2dBtn">2D RADAR</button>
-                <button class="btn btn-outline btn-sm" id="lidarMode3dBtn">3D MESH</button>
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <select id="csColormapSelect" style="width: 125px; padding: 2px 6px; font-size: 0.7rem;">
+                  <option value="ELEVATION">🎨 Height Gradient</option>
+                  <option value="HAZARD">⚠️ Hazard Alert</option>
+                </select>
+                <select id="csDepthSelect" style="width: 85px; padding: 2px 6px; font-size: 0.7rem;">
+                  <option value="5.0">Depth: 5m</option>
+                  <option value="3.0">Depth: 3m</option>
+                  <option value="8.0">Depth: 8m</option>
+                </select>
                 <button class="btn btn-outline btn-sm" id="lidarClearBtn">CLEAR</button>
               </div>
             </div>
-            <div class="hud-body" style="padding: 0;">
-              <div class="lidar-container">
-                <canvas id="lidarRadarCanvas"></canvas>
-                <div id="lidar3dContainer" style="width: 100%; height: 100%; display: none;"></div>
+            <div class="hud-body" style="padding: 0; position: relative;">
+              <div class="lidar-container" style="height: 330px; position: relative; background: #05070a;">
+                <div id="lidarCrossSectionContainer" style="width: 100%; height: 100%;"></div>
 
-                <!-- HUD HUD Overlay Info -->
-                <div class="lidar-hud-overlay">
-                  <div>RANGE: <b>3.0 METERS</b></div>
-                  <div>SERVO SWEEP: <b>0° - 180°</b></div>
-                  <div>SENSOR: <b>TF-LUNA LiDAR</b></div>
-                  <div style="color: var(--accent-amber);">OBSTACLE: <b>&lt; 50 CM HAZARD</b></div>
+                <!-- Cross-Section Real-Time Clearance Overlay -->
+                <div class="cs-hud-grid">
+                  <div class="cs-metric-badge">
+                    <span class="label">WIDTH:</span>
+                    <span class="val" id="csTunnelWidthVal">2.8 m</span>
+                  </div>
+                  <div class="cs-metric-badge">
+                    <span class="label">ROOF:</span>
+                    <span class="val" id="csCeilingHeightVal">2.2 m</span>
+                  </div>
+                  <div class="cs-metric-badge">
+                    <span class="label">OBSTACLE:</span>
+                    <span class="val" id="csObstacleDistVal">250 cm</span>
+                  </div>
+                  <div class="cs-metric-badge">
+                    <span class="label">PASSABILITY:</span>
+                    <span class="val" id="csClearanceStatusVal" style="color: var(--accent-emerald);">CLEAR</span>
+                  </div>
                 </div>
-
-                <!-- Clean HUD without export overlay -->
               </div>
             </div>
           </div>
+
+          <!-- Real-Time Tactical Mission Event Logger -->
+          <div class="hud-card">
+            <div class="hud-header">
+              <span class="hud-title">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                TACTICAL MISSION EVENT LOG
+              </span>
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <select id="eventLogFilterSelect" style="width: 105px; padding: 2px 6px; font-size: 0.7rem;">
+                  <option value="ALL">All Events</option>
+                  <option value="HAZARDS">⚠️ Hazards</option>
+                  <option value="COMMANDS">🎮 Commands</option>
+                  <option value="SAMPLES">🧪 Samples</option>
+                  <option value="INFO">ℹ️ Info</option>
+                </select>
+                <button class="btn btn-outline btn-sm" id="eventLogScrollBtn" title="Toggle Auto-Scroll">📜 AUTO-SCROLL</button>
+                <button class="btn btn-outline btn-sm" id="eventLogClearBtn" title="Clear Log Terminal">CLEAR</button>
+              </div>
+            </div>
+            <div class="hud-body" style="padding: 6px;">
+              <div id="eventLogContainer" class="event-log-container"></div>
+            </div>
+          </div>
+
         </div>
 
         <!-- RIGHT COLUMN: Optical & Thermal AI Feed (API 3 & 4) + Teleop -->
@@ -325,19 +408,64 @@
       </div>
     </div>
 
-    <!-- TAB 2: LiDAR 3D SLAM & FULL RESOLUTION TUNNEL MAP -->
+    <!-- TAB 2: SUBTERRANEAN 3D LiDAR TUNNEL CROSS-SECTION & CLEARANCE PROFILER -->
     <div id="tabLidar" class="tab-content">
       <div class="hud-card">
         <div class="hud-header">
-          <span class="hud-title">SUBTERRANEAN 3D POINT CLOUD & TOPOLOGY SLAM</span>
-          <div style="display: flex; gap: 8px;">
-            <button class="btn btn-primary btn-sm" onclick="lidarVisualizer.setViewMode('2D_RADAR')">2D RADAR</button>
-            <button class="btn btn-outline btn-sm" onclick="lidarVisualizer.setViewMode('3D_TUNNEL')">3D TUNNEL MESH</button>
+          <span class="hud-title">
+            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+            SUBTERRANEAN 3D LiDAR: TUNNEL CROSS-SECTION & CLEARANCE PROFILER
+          </span>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <select id="tab2ColormapSelect" style="width: 130px; padding: 3px 8px; font-size: 0.75rem;">
+              <option value="ELEVATION">🎨 Height Gradient</option>
+              <option value="HAZARD">⚠️ Hazard Alert</option>
+            </select>
+            <select id="tab2DepthSelect" style="width: 100px; padding: 3px 8px; font-size: 0.75rem;">
+              <option value="5.0">Depth: 5m</option>
+              <option value="3.0">Depth: 3m</option>
+              <option value="8.0">Depth: 8m</option>
+            </select>
+            <select id="tab2PointSizeSelect" style="width: 100px; padding: 3px 8px; font-size: 0.75rem;">
+              <option value="4.0">Size: Normal</option>
+              <option value="2.5">Size: Fine</option>
+              <option value="6.0">Size: Bold</option>
+            </select>
             <button class="btn btn-outline btn-sm" onclick="lidarVisualizer.clearPoints()">CLEAR MAP</button>
           </div>
         </div>
         <div class="hud-body">
-          <div style="height: 580px; position: relative;">
+          <!-- Clearance Overview Stats Bar -->
+          <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 12px;">
+            <div class="gauge-box">
+              <span class="gauge-label">SHAFT CLEARANCE WIDTH</span>
+              <span class="gauge-value" id="tab2WidthVal" style="color: var(--accent-cyan);">2.8 m</span>
+              <span class="gauge-sub">Wall-to-wall corridor</span>
+            </div>
+            <div class="gauge-box">
+              <span class="gauge-label">CEILING VAULT HEIGHT</span>
+              <span class="gauge-value" id="tab2HeightVal" style="color: var(--accent-purple);">2.2 m</span>
+              <span class="gauge-sub">Overhead clearance</span>
+            </div>
+            <div class="gauge-box">
+              <span class="gauge-label">FORWARD OBSTACLE PROXIMITY</span>
+              <span class="gauge-value" id="tab2ObstacleVal" style="color: var(--accent-amber);">250 cm</span>
+              <span class="gauge-sub">Minimum debris distance</span>
+            </div>
+            <div class="gauge-box">
+              <span class="gauge-label">PASSABILITY STATUS</span>
+              <span class="gauge-value" id="tab2StatusVal" style="color: var(--accent-emerald);">CLEAR</span>
+              <span class="gauge-sub">Path unobstructed</span>
+            </div>
+            <div class="gauge-box">
+              <span class="gauge-label">ACCUMULATED 3D POINTS</span>
+              <span class="gauge-value" id="tab2PointCountVal" style="color: #fff;">0</span>
+              <span class="gauge-sub">Active point cloud</span>
+            </div>
+          </div>
+
+          <!-- Cross-Section Canvas Viewer -->
+          <div style="height: 520px; position: relative; background: #05070a; border-radius: 4px; overflow: hidden; border: 1px solid var(--border-color);">
             <div id="fullLidarContainer" style="width: 100%; height: 100%;"></div>
           </div>
         </div>
@@ -540,8 +668,8 @@
             <div class="gauge-box">
               <span class="gauge-label" style="color: var(--accent-cyan); font-size: 0.9rem;">1. BRAIN 1 (ESP32 ROBOT MAIN CONTROLLER)</span>
               <ul style="padding-left: 20px; margin-top: 6px;">
-                <li><b>TF-Luna LiDAR:</b> UART (TX: GPIO17, RX: GPIO16) or I2C. Single-point laser distance measurement.</li>
-                <li><b>Servo Mirror Sweep:</b> PWM Signal GPIO18. Sweeps mirror 0° to 180° for planar radar scan.</li>
+                <li><b>Subterranean 3D LiDAR:</b> Dual-Axis Pan-Tilt Servos (Pan: GPIO18, Tilt: GPIO23) + TF-Luna/TFmini-S or Solid-State 3D ToF. Measures 3D coordinates (Azimuth, Elevation, Distance) -> (X, Y, Z).</li>
+                <li><b>Tunnel Cross-Section SLAM:</b> Profiles shaft vault ceiling, rib walls, floor clearance, and forward obstacle encroachment.</li>
                 <li><b>Sensors:</b> MQ-4 (ADC GPIO34), MQ-7 (ADC GPIO35), BME280 (I2C SDA: GPIO21, SCL: GPIO22), IR Obstacle (GPIO19).</li>
                 <li><b>LoRa SX1278 (RA-02 433MHz):</b> SPI (SCK: GPIO18, MISO: GPIO19, MOSI: GPIO23, NSS: GPIO5, DIO0: GPIO2).</li>
                 <li><b>Camera Trigger Pulse:</b> GPIO4 output pulse sent to ESP32-CAM when soil scoop cycle completes.</li>
@@ -585,6 +713,8 @@
   </div>
 
   <!-- JavaScript Modules (Loaded in dependency order) -->
+  <script src="js/event_logger.js"></script>
+  <script src="js/diagnostics.js"></script>
   <script src="js/serial_manager.js"></script>
   <script src="js/alarm_system.js"></script>
   <script src="js/lidar_visualizer.js"></script>

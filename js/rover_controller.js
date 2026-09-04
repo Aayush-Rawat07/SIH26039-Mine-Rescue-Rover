@@ -40,6 +40,10 @@ class RoverController {
       await window.serialManager.sendCommand(cmdPacket);
     }
 
+    if (window.eventLogger && action !== 'STOP') {
+      window.eventLogger.log('CMD', 'ROVER', `Drive: ${action} (PWM: ${this.speedPwm})`);
+    }
+
     this.updateDpadUi(action);
   }
 
@@ -56,6 +60,9 @@ class RoverController {
       if (window.alarmSystem) {
         window.alarmSystem.announceVoice("Emergency stop engaged. Rover halted.");
       }
+      if (window.eventLogger) {
+        window.eventLogger.log('CRIT', 'ROVER', 'EMERGENCY BRAKE ENGAGED.');
+      }
     } else {
       if (estopBtn) {
         estopBtn.style.background = '';
@@ -63,6 +70,9 @@ class RoverController {
       }
       if (window.alarmSystem) {
         window.alarmSystem.announceVoice("Emergency stop released.");
+      }
+      if (window.eventLogger) {
+        window.eventLogger.log('INFO', 'ROVER', 'Emergency brake released.');
       }
     }
   }
@@ -84,6 +94,9 @@ class RoverController {
     if (window.serialManager) {
       await window.serialManager.sendCommand(cmdPacket);
     }
+    if (window.eventLogger) {
+      window.eventLogger.log('CMD', 'ROVER', `Headlights: ${this.headlightsOn ? 'ON' : 'OFF'}`);
+    }
   }
 
   async triggerSoilSample() {
@@ -93,6 +106,9 @@ class RoverController {
     };
     if (window.serialManager) {
       await window.serialManager.sendCommand(cmdPacket);
+    }
+    if (window.eventLogger) {
+      window.eventLogger.log('CMD', 'SCOOP', 'Actuating passive soil scoop cycle & camera trigger pulse.');
     }
     // Also simulate receiving sample_event if testing in simulator
     if (window.simulator && window.simulator.isRunning) {

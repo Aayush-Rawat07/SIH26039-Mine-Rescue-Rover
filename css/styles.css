@@ -701,3 +701,66 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus {
     color: #000 !important;
   }
 }
+
+/* ==========================================================================
+   Tactical Event Logger & Hardware Diagnostics Extensions
+   ========================================================================== */
+
+.event-log-container {
+  height: 150px;
+  overflow-y: auto;
+  background: #05070d;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+}
+
+.event-log-container::-webkit-scrollbar {
+  width: 4px;
+}
+.event-log-container::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+}
+
+.cs-hud-grid {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 10;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cs-metric-badge {
+  background: rgba(10, 14, 24, 0.85);
+  border: 1px solid var(--border-color);
+  backdrop-filter: blur(6px);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cs-metric-badge span.label {
+  color: var(--text-muted);
+}
+
+.cs-metric-badge span.val {
+  color: #fff;
+  font-weight: 700;
+}
+
+.diag-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}

@@ -20,22 +20,22 @@ This solution provides an **Autonomous & Teleoperated Reconnaissance Ground Rove
 ## ⚙️ 2. Hardware Architecture ("The Static Six" Specification)
 
 ```
-[ TF-Luna LiDAR (UART) + Servo Mirror ]
-[ MQ-4 (CH4) + MQ-7 (CO) + BME280 + IR ]  --->  [ BRAIN 1: ESP32 ]
-[ Dual Motor Driver (L298N/TB6612)      ]           | (LoRa 433MHz / Serial)
-[ Soil Scoop Actuator + Cam Trigger     ]           v
-                                                [ BRAIN 2: ESP8266 ]
-                                                    | (USB Serial @ 115200 Baud)
-[ ESP32-CAM (AI-Thinker OV2640) ]                   v
-  (Direct WiFi HTTP /stream & /capture) -------> [ LAPTOP DASHBOARD (GCS) ]
+[ Dual-Axis 3D Pan-Tilt LiDAR (Azimuth + Elevation) ]
+[ MQ-4 (CH4) + MQ-7 (CO) + BME280 + IR + Battery    ]  --->  [ BRAIN 1: ESP32 ]
+[ Dual Motor Driver (L298N/TB6612)                  ]           | (LoRa 433MHz / Serial)
+[ Soil Scoop Actuator + Cam Trigger                 ]           v
+                                                            [ BRAIN 2: ESP8266 ]
+                                                                | (USB Serial @ 115200 Baud)
+[ ESP32-CAM (AI-Thinker OV2640) ]                               v
+  (Direct WiFi HTTP /stream & /capture) -------------------> [ LAPTOP DASHBOARD (GCS) ]
 ```
 
 ### Module Breakdown:
 1. **Brain 1 (ESP32)**:
-   - Sweeps TF-Luna LiDAR across a 0°–180° arc via a servo-actuated mirror.
-   - Polls MQ-4, MQ-7, BME280, and IR obstacle sensor.
+   - Sweeps 3D LiDAR across Horizontal Azimuth (0°–180°) and Vertical Elevation (-20° to +25°) via dual-axis servos.
+   - Polls MQ-4, MQ-7, BME280, 3S LiPo battery divider, and IR obstacle sensor.
    - Controls motor driver H-Bridge for rover locomotion.
-   - Sends telemetry packets over SX1278 LoRa (433MHz) to surface base station.
+   - Sends 3D coordinate telemetry packets over SX1278 LoRa (433MHz) to surface base station.
    - Sends a GPIO trigger pulse to the ESP32-CAM upon completing a soil scoop cycle.
 2. **Brain 2 (ESP8266 Base Station Bridge)**:
    - Receives LoRa 433MHz packets from Brain 1.
@@ -43,19 +43,19 @@ This solution provides an **Autonomous & Teleoperated Reconnaissance Ground Rove
 3. **Camera Unit (ESP32-CAM AI-Thinker OV2640)**:
    - Hosts a standalone WiFi HTTP server with `/stream` (MJPEG video) and `/capture` (JPEG snapshot).
    - Direct WiFi connection to laptop (bypasses low-bandwidth LoRa channel).
-4. **LiDAR Distance Sensor**: TF-Luna / TFmini-S (0.2m to 8m distance sensing).
+4. **3D LiDAR Distance Sensor**: TF-Luna / TFmini-S / Solid-State 3D ToF (0.2m to 8m distance sensing).
 
 ---
 
 ## 📡 3. API Specifications & Data Formats
 
-### API 1: LiDAR Point Cloud Stream
+### API 1: 3D LiDAR Point Cloud Stream (Tunnel Cross-Section)
 - **Source**: Brain 1 → LoRa → Brain 2 → Laptop GCS
 - **Packet Format**:
   ```json
-  {"type": "telemetry", "angle_deg": 92.5, "distance_cm": 145, "timestamp": 1725200000}
+  {"type": "lidar_3d", "azimuth_deg": 92.5, "elevation_deg": 4.5, "distance_cm": 145, "intensity": 120, "timestamp": 1725200000}
   ```
-- **Action**: GCS converts Polar $(\theta, r)$ into Cartesian $(x, y, z)$ coordinates and updates the real-time 2D Polar Radar and 3D Tunnel Mesh.
+- **Action**: GCS converts Spherical $(\text{azimuth}, \text{elevation}, r)$ into Cartesian $(x, y, z)$ coordinates and updates the real-time **Subterranean Tunnel Cross-Section & Clearance Profiler**.
 
 ### API 2: Gas Sensor & Environmental Telemetry
 - **Source**: Brain 1 → LoRa → Brain 2 → Laptop GCS
@@ -90,18 +90,29 @@ This solution provides an **Autonomous & Teleoperated Reconnaissance Ground Rove
 
 ---
 
-## 🚀 4. How to Launch & Run the Dashboard
+## 🚀 4. How to Launch & Access the Dashboard (Universal Access)
 
-### Method 1: Instant Launch via Windows Batch File
-Double-click `start_dashboard.bat` in the project root folder. It will start the local HTTP server and automatically open your default browser to:
-```
-http://localhost:8000
-```
+### Method 1: Instant Launch (Batch File)
+Double-click `start_dashboard.bat` in the project root folder. It starts the server and automatically provisions:
+1. **Worldwide Public Web Link**: Generates an instant, secure HTTPS URL (e.g. `https://xxxx.trycloudflare.com`) accessible to anyone, anywhere in the world on any cellular network, phone, or laptop.
+2. **Local LAN / WiFi Link**: Accessible to any device connected to the same WiFi / Mobile Hotspot via `http://<YOUR_LAN_IP>:8000`.
+3. **Local PC Link**: `http://localhost:8000`.
 
 ### Method 2: Manual Python Command
 ```powershell
 python server/run_server.py
 ```
+*(To run strictly on local machine without public tunnel, add `--local-only`)*
+
+### Method 3: 100% Cloud Hosting via GitHub Pages
+The repository includes a ready-to-deploy `.github/workflows/pages.yml` workflow.
+1. Push your repository to GitHub.
+2. In your GitHub repository, go to **Settings** -> **Pages**.
+3. Under **Build and deployment**, select Source: **GitHub Actions**.
+4. The dashboard will be permanently hosted and publicly accessible worldwide at:
+   ```
+   https://<your-username>.github.io/SIH26039-Mine-Rescue-Rover/
+   ```
 
 ---
 
@@ -138,7 +149,17 @@ Click the yellow **"📄 DGMS REPORT"** button on the top bar to generate a form
 
 ---
 
-## 🛠️ 8. Arduino Firmware Flashing Guide
+## ⚡ 8. Tactical Diagnostics & Real-Time Mission Event Logger
+1. **Hardware & Link Diagnostics**:
+   - **3S LiPo Battery Monitor**: Real-time voltage (12.6V to 9.9V), remaining percentage, discharge curve, and battery health warning.
+   - **LoRa 433MHz Signal Metrics**: Continuous tracking of RSSI (-dBm), Signal-to-Noise Ratio (SNR dB), and telemetry ping latency (ms).
+2. **Tactical Event Logger**:
+   - Monospace scrolling mission terminal with millisecond timestamps and colored severity tags (`INFO`, `WARN`, `CRIT`, `CMD`, `SAMPLE`).
+   - Category filtering and Auto-Scroll toggling for mission commanders.
+
+---
+
+## 🛠️ 9. Arduino Firmware Flashing Guide
 The `firmware/` folder contains ready-to-flash sketches:
 - `firmware/brain1_esp32/brain1_esp32.ino`: Requires `LoRa`, `ESP32Servo`, `Adafruit_BME280`, `ArduinoJson`.
 - `firmware/brain2_esp8266/brain2_esp8266.ino`: Requires `LoRa`, `SPI`.

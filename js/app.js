@@ -135,8 +135,17 @@ function initializeApp() {
 
     // Telemetry routing
     window.serialManager.on('telemetry', (packet) => {
-      // API 1: LiDAR Point Cloud
-      if (packet.angle_deg !== undefined && packet.distance_cm !== undefined) {
+      // Diagnostics update
+      if (window.diagnostics) {
+        window.diagnostics.updateFromPacket(packet);
+      }
+
+      // API 1: 3D LiDAR or 2D Point Cloud
+      if (packet.azimuth_deg !== undefined && packet.distance_cm !== undefined) {
+        if (window.lidarVisualizer) {
+          window.lidarVisualizer.add3DPoint(packet.azimuth_deg, packet.elevation_deg || 0, packet.distance_cm, packet.intensity || 100, packet.timestamp);
+        }
+      } else if (packet.angle_deg !== undefined && packet.distance_cm !== undefined) {
         if (window.lidarVisualizer) {
           window.lidarVisualizer.addPoint(packet.angle_deg, packet.distance_cm, packet.timestamp);
         }
@@ -173,6 +182,13 @@ function initializeApp() {
       }
     });
 
+    // API 1: Dedicated 3D LiDAR packet stream
+    window.serialManager.on('lidar_3d', (packet) => {
+      if (window.lidarVisualizer) {
+        window.lidarVisualizer.add3DPoint(packet.azimuth_deg, packet.elevation_deg || 0, packet.distance_cm, packet.intensity || 100, packet.timestamp);
+      }
+    });
+
     // API 4: Sample event
     window.serialManager.on('sample_event', (packet) => {
       if (window.sampleGallery) {
@@ -201,37 +217,51 @@ function initializeApp() {
   if (camFilterThermal && window.cameraAi) camFilterThermal.addEventListener('click', () => window.cameraAi.setFilter('THERMAL'));
   if (manualSnapshotBtn && window.roverController) manualSnapshotBtn.addEventListener('click', () => window.roverController.triggerSoilSample());
 
-  // LiDAR 2D / 3D Mode controls
-  const lidar2dBtn = document.getElementById('lidarMode2dBtn');
-  const lidar3dBtn = document.getElementById('lidarMode3dBtn');
+  // 3D Tunnel Cross-Section controls (Tab 1 & Tab 2)
+  const csColormapSelect = document.getElementById('csColormapSelect');
+  const csDepthSelect = document.getElementById('csDepthSelect');
+  const tab2ColormapSelect = document.getElementById('tab2ColormapSelect');
+  const tab2DepthSelect = document.getElementById('tab2DepthSelect');
+  const tab2PointSizeSelect = document.getElementById('tab2PointSizeSelect');
   const lidarClearBtn = document.getElementById('lidarClearBtn');
 
-  if (lidar2dBtn) {
-    lidar2dBtn.addEventListener('click', () => {
-      if (window.lidarVisualizer) window.lidarVisualizer.setViewMode('2D_RADAR');
-      lidar2dBtn.classList.add('btn-primary');
-      lidar2dBtn.classList.remove('btn-outline');
-      if (lidar3dBtn) {
-        lidar3dBtn.classList.remove('btn-primary');
-        lidar3dBtn.classList.add('btn-outline');
-      }
-    });
+  if (csColormapSelect && window.lidarVisualizer) {
+    csColormapSelect.addEventListener('change', (e) => window.lidarVisualizer.setColormap(e.target.value));
   }
-
-  if (lidar3dBtn) {
-    lidar3dBtn.addEventListener('click', () => {
-      if (window.lidarVisualizer) window.lidarVisualizer.setViewMode('3D_TUNNEL');
-      lidar3dBtn.classList.add('btn-primary');
-      lidar3dBtn.classList.remove('btn-outline');
-      if (lidar2dBtn) {
-        lidar2dBtn.classList.remove('btn-primary');
-        lidar2dBtn.classList.add('btn-outline');
-      }
-    });
+  if (tab2ColormapSelect && window.lidarVisualizer) {
+    tab2ColormapSelect.addEventListener('change', (e) => window.lidarVisualizer.setColormap(e.target.value));
   }
-
+  if (csDepthSelect && window.lidarVisualizer) {
+    csDepthSelect.addEventListener('change', (e) => window.lidarVisualizer.setDepthFilter(e.target.value));
+  }
+  if (tab2DepthSelect && window.lidarVisualizer) {
+    tab2DepthSelect.addEventListener('change', (e) => window.lidarVisualizer.setDepthFilter(e.target.value));
+  }
+  if (tab2PointSizeSelect && window.lidarVisualizer) {
+    tab2PointSizeSelect.addEventListener('change', (e) => window.lidarVisualizer.setPointSize(e.target.value));
+  }
   if (lidarClearBtn && window.lidarVisualizer) {
     lidarClearBtn.addEventListener('click', () => window.lidarVisualizer.clearPoints());
+  }
+
+  // Tactical Mission Event Logger Controls
+  const eventLogFilterSelect = document.getElementById('eventLogFilterSelect');
+  const eventLogScrollBtn = document.getElementById('eventLogScrollBtn');
+  const eventLogClearBtn = document.getElementById('eventLogClearBtn');
+
+  if (eventLogFilterSelect && window.eventLogger) {
+    eventLogFilterSelect.addEventListener('change', (e) => window.eventLogger.setFilter(e.target.value));
+  }
+  if (eventLogScrollBtn && window.eventLogger) {
+    eventLogScrollBtn.addEventListener('click', () => {
+      const isAuto = window.eventLogger.toggleAutoScroll();
+      eventLogScrollBtn.classList.toggle('btn-primary', isAuto);
+      eventLogScrollBtn.classList.toggle('btn-outline', !isAuto);
+      eventLogScrollBtn.textContent = isAuto ? '📜 AUTO-SCROLL ON' : '📜 SCROLL OFF';
+    });
+  }
+  if (eventLogClearBtn && window.eventLogger) {
+    eventLogClearBtn.addEventListener('click', () => window.eventLogger.clear());
   }
 
   // Teleoperation speed slider & buttons
