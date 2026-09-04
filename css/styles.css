@@ -427,7 +427,7 @@ body {
 
 /* LiDAR Visualizer Container */
 .lidar-container {
-  height: 440px;
+  height: 330px;
   position: relative;
   background: #05070a;
   border-radius: 6px;
